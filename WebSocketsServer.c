@@ -128,10 +128,6 @@ void dbus_notification_callback (GDBusConnection  *connection,
       (strcmp(signal_name, "DeviceAdded") == 0))
       asprintf (&notification_msg, "[UDisks] %s", signal_name);
 
-  /* CUPS - 'JobQueuedLocal' */
-  if (strcmp(signal_name, "JobQueuedLocal") == 0)
-    asprintf (&notification_msg, "[CUPS] %s", signal_name);
-
   if (!notification_msg)
     asprintf (&notification_msg, "(not set)");
 
@@ -141,30 +137,6 @@ void dbus_notification_callback (GDBusConnection  *connection,
   free (notification_msg);
   json_decref (notification_obj);
   send_notification = TRUE;
-}
-
-
-/*
- * dbus_set_notification()
- */
-void
-dbus_set_notification (GDBusConnection  *connection,
-                       const gchar      *sender,
-                       const gchar      *interface_name,
-                       const gchar      *member,
-                       const gchar      *object_path)
-{
-  print_log (LOG_INFO, "(notification) new notification subscription\n");
-  g_dbus_connection_signal_subscribe (connection,
-                                      sender,
-                                      interface_name,
-                                      member,
-                                      object_path,
-                                      NULL,
-                                      G_DBUS_SIGNAL_FLAGS_NONE,
-                                      dbus_notification_callback,
-                                      NULL,
-                                      NULL);
 }
 
 
@@ -345,10 +317,16 @@ main(int argc, char **argv)
       print_log (LOG_INFO, "(main) Connected to D-Bus\n");
 
       /* UDisks - 'DeviceAdded' */
-      dbus_set_notification (connection, "org.freedesktop.UDisks", NULL, "DeviceAdded", NULL);
-
-      /* CUPS - 'JobQueuedLocal' */
-      dbus_set_notification (connection, NULL, "com.redhat.PrinterSpooler", "JobQueuedLocal", NULL);
+      g_dbus_connection_signal_subscribe (connection,
+                                          "org.freedesktop.UDisks",
+                                          NULL,
+                                          "DeviceAdded",
+                                          NULL,
+                                          NULL,
+                                          G_DBUS_SIGNAL_FLAGS_NONE,
+                                          dbus_notification_callback,
+                                          NULL,
+                                          NULL);
     }
 
   /* handle SIGINT */
